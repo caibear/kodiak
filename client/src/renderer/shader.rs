@@ -6,10 +6,10 @@ use super::renderer::Renderer;
 use super::texture::{Texture, TextureBinding};
 use super::TextureType;
 use crate::js_hooks::console_log;
-use js_sys::Array;
+
 use kodiak_common::glam::*;
 use linear_map::LinearMap;
-use wasm_bindgen::JsValue;
+
 use std::cell::{Cell, RefCell, RefMut};
 use std::mem;
 use std::rc::Rc;
@@ -665,10 +665,10 @@ fn link_program<'a>(
 
     #[cfg(feature = "renderer_transform_feedback")]
     {
-        let mut array = Option::<Array>::None;
+        let mut array = Option::<js_sys::Array>::None;
         for varying in parse_feedback_varyings(vertex) {
             let array = array.get_or_insert_default();
-            array.push(&JsValue::from_str(varying));
+            array.push(&wasm_bindgen::JsValue::from_str(varying));
         }
         if let Some(array) = array {
             gl.transform_feedback_varyings(&program, &array, Gl::INTERLEAVED_ATTRIBS);
