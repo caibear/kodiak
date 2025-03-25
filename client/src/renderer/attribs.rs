@@ -16,22 +16,23 @@ pub struct Attribs<'a> {
 
 impl<'a> Attribs<'a> {
     pub(crate) fn new<V: Vertex>(gl: &'a Gl) -> Self {
-        Self {
-            gl,
-            aia: None,
-            bytes: 0,
-            index: 0,
-            size: size_of::<V>(),
-        }
+        Self::new_inner::<V>(gl, None, None)
+    }
+
+    pub(crate) fn new_with_previous<V: Vertex>(gl: &'a Gl, previous: Self) -> Self {
+        Self::new_inner::<V>(gl, None, Some(previous))
     }
 
     pub(crate) fn new_instanced<V: Vertex>(gl: &'a Gl, aia: &'a Aia, previous: Self) -> Self {
-        let index = previous.index;
+        Self::new_inner::<V>(gl, Some(aia), Some(previous))
+    }
+
+    fn new_inner<V: Vertex>(gl: &'a Gl, aia: Option<&'a Aia>, previous: Option<Self>) -> Self {
         Self {
             gl,
-            aia: Some(aia),
+            aia,
             bytes: 0,
-            index,
+            index: previous.map_or(0, |p| p.index),
             size: size_of::<V>(),
         }
     }

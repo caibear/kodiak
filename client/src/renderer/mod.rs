@@ -17,6 +17,8 @@ mod gl;
 mod query;
 #[cfg(feature = "renderer_srgb")]
 mod srgb_layer;
+#[cfg(feature = "renderer_transform_feedback")]
+mod transform_feedback;
 
 mod antialiasing;
 mod attribs;
@@ -40,6 +42,8 @@ pub use attribs::*;
 // Re-export to provide a simpler api.
 #[cfg(feature = "renderer_query")]
 pub use query::*;
+#[cfg(feature = "renderer_transform_feedback")]
+pub use transform_feedback::*;
 
 pub use self::antialiasing::*;
 pub use self::buffer::*;

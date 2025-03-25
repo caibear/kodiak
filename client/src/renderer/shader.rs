@@ -6,8 +6,10 @@ use super::renderer::Renderer;
 use super::texture::{Texture, TextureBinding};
 use super::TextureType;
 use crate::js_hooks::console_log;
+use js_sys::Array;
 use kodiak_common::glam::*;
 use linear_map::LinearMap;
+use wasm_bindgen::JsValue;
 use std::cell::{Cell, RefCell, RefMut};
 use std::mem;
 use std::rc::Rc;
@@ -42,7 +44,7 @@ impl Shader {
         let frag_shader = compile_shader(gl, Gl::FRAGMENT_SHADER, fragment);
 
         // Defers failing to shader bind.
-        let program = link_program(gl, &vert_shader, &frag_shader, parse_attributes(vertex));
+        let program = link_program(gl, &vert_shader, &frag_shader, vertex);
 
         Self(Rc::new(ShaderInner {
             program,
@@ -612,6 +614,28 @@ fn parse_attributes(vertex_source: &str) -> impl Iterator<Item = (&str, u32)> {
     })
 }
 
+#[cfg(feature = "renderer_transform_feedback")]
+fn parse_feedback_varyings(vertex_source: &str) -> impl Iterator<Item = &str> {
+    debug_assert!(
+        !vertex_source.contains("/*"),
+        "varying parser cannot handle multiline comments in vertex shader"
+    );
+
+    // TODO error/support attributes that don't start on new line.
+    vertex_source.lines().filter_map(|l| {
+        let mut tokens = l.split_whitespace();
+        (tokens.next() == Some("out")).then(|| {
+            tokens.next().expect("varying missing type");
+            let name = tokens
+                .next()
+                .expect("varying missing name")
+                .trim_end_matches(';');
+
+            name.starts_with("FEEDBACK_").then_some(name)
+        }).flatten()
+    })
+}
+
 /// compile_shader combines either the vertex or fragment shader of a shader program.
 fn compile_shader(gl: &Gl, shader_type: u32, source: &str) -> WebGlShader {
     let shader = gl.create_shader(shader_type).unwrap();
@@ -621,12 +645,12 @@ fn compile_shader(gl: &Gl, shader_type: u32, source: &str) -> WebGlShader {
 }
 
 /// link_program links the two shaders to form a shader program. It indexes attribute locations
-/// in the exact order they appear in the input.
+/// in the exact order they appear in the `vertex` shader.
 fn link_program<'a>(
     gl: &Gl,
     vert_shader: &WebGlShader,
     frag_shader: &WebGlShader,
-    attributes: impl Iterator<Item = (&'a str, u32)>,
+    vertex: &str,
 ) -> WebGlProgram {
     let program = gl.create_program().unwrap();
 
@@ -634,9 +658,21 @@ fn link_program<'a>(
     gl.attach_shader(&program, frag_shader);
 
     let mut location = 0;
-    for (name, size) in attributes {
+    for (name, size) in parse_attributes(vertex) {
         gl.bind_attrib_location(&program, location, name);
         location += size;
+    }
+
+    #[cfg(feature = "renderer_transform_feedback")]
+    {
+        let mut array = Option::<Array>::None;
+        for varying in parse_feedback_varyings(vertex) {
+            let array = array.get_or_insert_default();
+            array.push(&JsValue::from_str(varying));
+        }
+        if let Some(array) = array {
+            gl.transform_feedback_varyings(&program, &array, Gl::INTERLEAVED_ATTRIBS);
+        }
     }
 
     gl.link_program(&program);

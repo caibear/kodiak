@@ -172,7 +172,7 @@ impl<M: Vertex> InstanceBuffer<M> {
         &'a self,
         renderer: &'a Renderer,
         triangle_buffer: &'a TriangleBuffer<V, I>,
-    ) -> InstanceBufferBinding<'a, V, I, M> {
+    ) -> InstanceBufferBinding<'a, V, I> {
         let gl = &renderer.gl;
         let aia = renderer
             .aia
@@ -216,7 +216,7 @@ impl<M: Vertex> InstanceBuffer<M> {
             drop(instance_binding);
         }
 
-        InstanceBufferBinding::new(gl, aia, ovao, self, triangle_buffer)
+        InstanceBufferBinding::new(gl, aia, ovao, triangle_buffer, self.instances.len(), &self.vao)
     }
 
     /// Copies instances into the [`InstanceBuffer`].
@@ -226,20 +226,21 @@ impl<M: Vertex> InstanceBuffer<M> {
 }
 
 /// A bound [`InstanceBuffer`] that can draw instances of triangles.
-pub struct InstanceBufferBinding<'a, V, I, M> {
+pub struct InstanceBufferBinding<'a, V, I> {
     aia: &'a Aia,
     ovao: &'a Ovao,
     triangle_buffer: &'a TriangleBuffer<V, I>,
-    buffer: &'a InstanceBuffer<M>,
+    instance_count: usize,
 }
 
-impl<'a, V: Vertex, I: Index, M: Vertex> InstanceBufferBinding<'a, V, I, M> {
-    fn new(
+impl<'a, V: Vertex, I: Index> InstanceBufferBinding<'a, V, I> {
+    pub(crate) fn new(
         gl: &'a Gl,
         aia: &'a Aia,
         ovao: &'a Ovao,
-        buffer: &'a InstanceBuffer<M>,
         triangle_buffer: &'a TriangleBuffer<V, I>,
+        instance_count: usize,
+        vao: &'a WebGlVertexArrayObject,
     ) -> Self {
         // Make sure buffer was unbound.
         debug_assert!(gl
@@ -247,13 +248,13 @@ impl<'a, V: Vertex, I: Index, M: Vertex> InstanceBufferBinding<'a, V, I, M> {
             .unwrap()
             .is_null());
 
-        ovao.bind_vertex_array_oes(Some(&buffer.vao));
+        ovao.bind_vertex_array_oes(Some(vao));
 
         Self {
             aia,
             ovao,
             triangle_buffer,
-            buffer,
+            instance_count,
         }
     }
 
@@ -266,20 +267,20 @@ impl<'a, V: Vertex, I: Index, M: Vertex> InstanceBufferBinding<'a, V, I, M> {
                 self.triangle_buffer.indices.len() as i32,
                 I::GL_ENUM,
                 0,
-                self.buffer.instances.len() as i32,
+                self.instance_count as i32,
             );
         } else if !self.triangle_buffer.vertices.is_empty() {
             self.aia.draw_arrays_instanced_angle(
                 primitive,
                 0,
                 self.triangle_buffer.vertices.len() as i32,
-                self.buffer.instances.len() as i32,
+                self.instance_count as i32,
             )
         }
     }
 }
 
-impl<'a, V, I, M> Drop for InstanceBufferBinding<'a, V, I, M> {
+impl<'a, V, I> Drop for InstanceBufferBinding<'a, V, I> {
     fn drop(&mut self) {
         // Unbind ALWAYS required (unlike all other render unbinds).
         self.ovao.bind_vertex_array_oes(None);
