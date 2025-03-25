@@ -1,8 +1,10 @@
-
-use super::{DefaultRender, GpuBuffer, GpuBufferType, Index, InstanceBufferBinding, Renderer, TriangleBuffer, Vertex};
 use super::gl::{Gl, Ovao, OvaoCompat};
-use web_sys::{WebGlBuffer, WebGlVertexArrayObject, WebGlTransformFeedback};
+use super::{
+    DefaultRender, GpuBuffer, GpuBufferType, Index, InstanceBufferBinding, Renderer,
+    TriangleBuffer, Vertex,
+};
 use std::ops::Range;
+use web_sys::{WebGlBuffer, WebGlTransformFeedback, WebGlVertexArrayObject};
 
 struct RecurrentBuffer<R> {
     buffer: GpuBuffer<R, { GpuBufferType::Array.to() }>,
@@ -46,8 +48,14 @@ impl<S: Vertex, R: Vertex> DefaultRender for RecurrentInstanceBuffer<S, R> {
             gl.bind_buffer_base(Gl::TRANSFORM_FEEDBACK_BUFFER, 0, Some(buffer._elements()));
             gl.bind_transform_feedback(Gl::TRANSFORM_FEEDBACK, None); // Unbind always required.
 
-            let instance_vao =  renderer.ovao.create_vertex_array_oes().unwrap();
-            RecurrentBuffer { buffer, feedback_vao, feedback, instance_vao, last_vertex_buffer: None }
+            let instance_vao = renderer.ovao.create_vertex_array_oes().unwrap();
+            RecurrentBuffer {
+                buffer,
+                feedback_vao,
+                feedback,
+                instance_vao,
+                last_vertex_buffer: None,
+            }
         });
         // Make the buffers write to each other.
         let [a, b] = &mut recurrent_buffers;
@@ -62,12 +70,20 @@ impl<S: Vertex, R: Vertex> DefaultRender for RecurrentInstanceBuffer<S, R> {
 
 impl<S: Vertex, R: Vertex> RecurrentInstanceBuffer<S, R> {
     /// Binds the [`RecurrentInstanceBuffer`] to save transform feedback. Optionally can draw points used internally for transform feedback.
-    pub fn bind_feedback<'a>(&'a mut self, renderer: &'a Renderer, draw_points: bool) -> RecurrentInstanceBufferBinding<'a, S, R> {
+    pub fn bind_feedback<'a>(
+        &'a mut self,
+        renderer: &'a Renderer,
+        draw_points: bool,
+    ) -> RecurrentInstanceBufferBinding<'a, S, R> {
         RecurrentInstanceBufferBinding::new(&renderer.gl, &renderer.ovao, self, !draw_points)
     }
 
     /// Binds the [`RecurrentInstanceBuffer`] to draw instances.
-    pub fn bind_instances<'a, V: Vertex, I: Index>(&'a mut self, renderer: &'a Renderer, triangle_buffer: &'a TriangleBuffer<V, I>) -> InstanceBufferBinding<'a, V, I> {
+    pub fn bind_instances<'a, V: Vertex, I: Index>(
+        &'a mut self,
+        renderer: &'a Renderer,
+        triangle_buffer: &'a TriangleBuffer<V, I>,
+    ) -> InstanceBufferBinding<'a, V, I> {
         let gl = &renderer.gl;
         let aia = renderer
             .aia
@@ -92,7 +108,10 @@ impl<S: Vertex, R: Vertex> RecurrentInstanceBuffer<S, R> {
             // Bind element buffer.
             let element_binding = triangle_buffer.indices.bind(gl);
 
-            let attribs = self.static_buffer.bind(gl).bind_attribs_instanced(aia, attribs);
+            let attribs = self
+                .static_buffer
+                .bind(gl)
+                .bind_attribs_instanced(aia, attribs);
             current.buffer.bind(gl).bind_attribs_instanced(aia, attribs);
 
             // Unbinding VAO is ALWAYS required (unlike all other render unbinds).
@@ -102,7 +121,14 @@ impl<S: Vertex, R: Vertex> RecurrentInstanceBuffer<S, R> {
             drop(element_binding);
         }
 
-        InstanceBufferBinding::new(gl, aia, ovao, triangle_buffer, self.static_buffer.len(), &current.instance_vao)
+        InstanceBufferBinding::new(
+            gl,
+            aia,
+            ovao,
+            triangle_buffer,
+            self.static_buffer.len(),
+            &current.instance_vao,
+        )
     }
 
     /// Copies `static_data` and `recurrent_data` into the [`RecurrentInstanceBuffer`].
@@ -110,15 +136,21 @@ impl<S: Vertex, R: Vertex> RecurrentInstanceBuffer<S, R> {
     /// `recurrent_data` is changed by each execution of the transform feedback shader.
     pub fn buffer(&mut self, renderer: &Renderer, static_data: &[S], recurrent_data: &[R]) {
         self.static_buffer.buffer(&renderer.gl, static_data);
-        self.recurrent_buffers[0].buffer.buffer(&renderer.gl, recurrent_data);
+        self.recurrent_buffers[0]
+            .buffer
+            .buffer(&renderer.gl, recurrent_data);
         // Fixes "Not enough space in bound transform feedback buffers".
-        self.recurrent_buffers[1].buffer.resize_zeroed(&renderer.gl, recurrent_data.len());
+        self.recurrent_buffers[1]
+            .buffer
+            .resize_zeroed(&renderer.gl, recurrent_data.len());
     }
 
     /// For debugging.
     pub fn clear_recurrent(&mut self, renderer: &Renderer) {
         let zeroed: Vec<R> = bytemuck::zeroed_vec(self.static_buffer.len());
-        self.recurrent_buffers[0].buffer.buffer(&renderer.gl, &zeroed);
+        self.recurrent_buffers[0]
+            .buffer
+            .buffer(&renderer.gl, &zeroed);
     }
 
     fn current(&self) -> &RecurrentBuffer<R> {
@@ -135,7 +167,12 @@ pub struct RecurrentInstanceBufferBinding<'a, S: Vertex, R: Vertex> {
 }
 
 impl<'a, S: Vertex, R: Vertex> RecurrentInstanceBufferBinding<'a, S, R> {
-    fn new(gl: &'a Gl, ovao: &'a Ovao, buffer: &'a mut RecurrentInstanceBuffer<S, R>, discard_points: bool) -> Self {
+    fn new(
+        gl: &'a Gl,
+        ovao: &'a Ovao,
+        buffer: &'a mut RecurrentInstanceBuffer<S, R>,
+        discard_points: bool,
+    ) -> Self {
         // Make sure transform feedback was unbound.
         debug_assert!(gl
             .get_parameter(Gl::TRANSFORM_FEEDBACK_BINDING)
@@ -159,7 +196,12 @@ impl<'a, S: Vertex, R: Vertex> RecurrentInstanceBufferBinding<'a, S, R> {
         if discard_points {
             gl.enable(Gl::RASTERIZER_DISCARD);
         }
-        Self { gl, ovao, buffer, discard_points }
+        Self {
+            gl,
+            ovao,
+            buffer,
+            discard_points,
+        }
     }
 
     /// Draws points.
@@ -195,7 +237,8 @@ impl<'a, S: Vertex, R: Vertex> Drop for RecurrentInstanceBufferBinding<'a, S, R>
 
         // End transform feedback.
         self.gl.end_transform_feedback();
-        self.gl.bind_transform_feedback(Gl::TRANSFORM_FEEDBACK, None); // Unbind always required.
+        self.gl
+            .bind_transform_feedback(Gl::TRANSFORM_FEEDBACK, None); // Unbind always required.
 
         // Swap output and current instead of copying.
         self.buffer.recurrent_buffers.swap(0, 1);

@@ -624,15 +624,17 @@ fn parse_feedback_varyings(vertex_source: &str) -> impl Iterator<Item = &str> {
     // TODO error/support attributes that don't start on new line.
     vertex_source.lines().filter_map(|l| {
         let mut tokens = l.split_whitespace();
-        (tokens.next() == Some("out")).then(|| {
-            tokens.next().expect("varying missing type");
-            let name = tokens
-                .next()
-                .expect("varying missing name")
-                .trim_end_matches(';');
+        (tokens.next() == Some("out"))
+            .then(|| {
+                tokens.next().expect("varying missing type");
+                let name = tokens
+                    .next()
+                    .expect("varying missing name")
+                    .trim_end_matches(';');
 
-            name.starts_with("FEEDBACK_").then_some(name)
-        }).flatten()
+                name.starts_with("FEEDBACK_").then_some(name)
+            })
+            .flatten()
     })
 }
 

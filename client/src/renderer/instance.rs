@@ -216,7 +216,14 @@ impl<M: Vertex> InstanceBuffer<M> {
             drop(instance_binding);
         }
 
-        InstanceBufferBinding::new(gl, aia, ovao, triangle_buffer, self.instances.len(), &self.vao)
+        InstanceBufferBinding::new(
+            gl,
+            aia,
+            ovao,
+            triangle_buffer,
+            self.instances.len(),
+            &self.vao,
+        )
     }
 
     /// Copies instances into the [`InstanceBuffer`].

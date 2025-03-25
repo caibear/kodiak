@@ -300,7 +300,11 @@ impl<'a, V: Vertex> GpuBufferBinding<'a, V, { GpuBufferType::Array.to() }> {
         attribs
     }
 
-    pub(crate) fn bind_attribs_instanced(&self, aia: &'a Aia, previous: Attribs<'a>) -> Attribs<'a> {
+    pub(crate) fn bind_attribs_instanced(
+        &self,
+        aia: &'a Aia,
+        previous: Attribs<'a>,
+    ) -> Attribs<'a> {
         let mut attribs = Attribs::new_instanced::<V>(self.gl, aia, previous);
         V::bind_attribs(&mut attribs);
         attribs
