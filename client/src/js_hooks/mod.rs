@@ -104,6 +104,7 @@ pub macro console_log {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -111,6 +112,16 @@ extern "C" {
 
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn error(s: &str) {
+    eprintln!("{s}");
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn log(s: &str) {
+    println!("{s}");
 }
 
 #[doc(hidden)]
