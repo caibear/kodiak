@@ -16,6 +16,7 @@ use crate::{
 };
 use actix::Recipient;
 use kodiak_common::rand::random;
+use kodiak_common::{ChatId, ChatMessage};
 use kodiak_common::{FileNamespace, VisitorId};
 use log::info;
 use std::net::IpAddr;
@@ -48,6 +49,25 @@ pub struct SendPlasmaRequest {
 
 impl SendPlasmaRequest {
     pub fn send(&self, request: PlasmaRequest) {
+        if cfg!(feature = "no_plasma") {
+            use kodiak_common::rustrict::CensorStr;
+            self.local.do_send(match request {
+                PlasmaRequest::V1(PlasmaRequestV1::SendChat { admin, alias, arena_id, authentic, ip_address, message, player_id, team_name, timestamp, visitor_id, recipient }) => {
+                    PlasmaUpdate::V1(vec![PlasmaUpdateV1::Chat { admin, alias, authentic, chat_id: ChatId {
+                        arena_id,
+                        server_id: self.local_server_id,
+                        message_id: timestamp,
+                    }, ip_address, message: ChatMessage::Raw {
+                        message: message.censor(),
+                        detected_language_id: Default::default(),
+                        english_translation: None,
+                    }, player_id, recipient, team_name, visitor_id }].into_boxed_slice())
+                }
+                _ => return,
+            });
+            return;
+        }
+
         match request {
             PlasmaRequest::V1(PlasmaRequestV1::SendServerMessage {
                 recipients,

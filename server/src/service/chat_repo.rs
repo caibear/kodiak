@@ -12,7 +12,7 @@ use crate::{
 };
 use kodiak_common::arrayvec::ArrayString;
 use kodiak_common::heapless::HistoryBuffer;
-use kodiak_common::slice_up_to_array_string;
+use kodiak_common::{slice_up_to_array_string, PlasmaRequest};
 use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::net::IpAddr;
@@ -390,7 +390,7 @@ impl<G: ArenaService> ChatRepo<G> {
 
         let timestamp = NonZeroUnixMillis::now().max(self.last_timestamp.add_millis(1));
         self.last_timestamp = timestamp;
-        plasma.do_request(PlasmaRequestV1::SendChat {
+        let request = PlasmaRequestV1::SendChat {
             admin: false,
             alias: req_player.alias,
             authentic,
@@ -406,7 +406,12 @@ impl<G: ArenaService> ChatRepo<G> {
             } else {
                 ChatRecipient::Broadcast
             },
-        });
+        };
+        if cfg!(feature = "no_plasma") {
+            req_tier.arena_context.send_to_plasma.send(PlasmaRequest::V1(request));
+        } else {
+            plasma.do_request(request);
+        }
         Ok(ChatUpdate::Sent)
     }
 
