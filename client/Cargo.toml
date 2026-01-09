@@ -28,6 +28,7 @@ joined = []
 log = ["dep:log", "console_log", "kodiak_common/log"]
 mouse_over_ui = []
 music = ["audio"]
+no_plasma = []
 pointer_lock = ["yew_icons/LucideMousePointerClick"]
 # Renderer needs scalar-math feature to avoid alignment requirements that break GL compatibility.
 renderer = [ "bytemuck", "kodiak_common/glam_bytemuck", "linear-map",

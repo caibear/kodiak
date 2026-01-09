@@ -347,6 +347,10 @@ pub fn profile_factory(
 
 #[allow(clippy::type_complexity)]
 pub(crate) fn renew_session(set_login: Callback<Login>, renew: Option<SessionId>, game_id: GameId) {
+    if cfg!(feature = "no_plasma") {
+        return;
+    }
+
     let url = format!(
         "https://softbear.com/api/auth/session.json?sessionId={}&gameId={game_id}",
         renew
