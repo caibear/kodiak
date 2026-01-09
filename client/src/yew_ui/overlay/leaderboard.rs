@@ -194,7 +194,7 @@ pub fn leaderboard_overlay(props: &LeaderboardProps) -> Html {
                 {t.online(core_state.players_online)}
                 <br/>
             }
-            if props.liveboard && let Some(caveat) = core_state.leaderboard_caveat {
+            if !cfg!(feature = "no_plasma") && props.liveboard && let Some(caveat) = core_state.leaderboard_caveat {
                 {match caveat {
                     LeaderboardCaveat::Closing => html_nested!{
                         <span
@@ -226,6 +226,9 @@ pub fn leaderboard_overlay(props: &LeaderboardProps) -> Html {
 
         (items, footer)
     } else {
+        if cfg!(feature = "no_plasma") {
+            return html!{};
+        }
         let period_id = ctw.setting_cache.leaderboard_period_id;
         let lb = core_state.leaderboard(period_id);
         let items = lb

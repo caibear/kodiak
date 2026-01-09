@@ -279,17 +279,19 @@ pub fn spawn_overlay(props: &SpawnOverlayProps) -> Html {
                     disabled={*paused || *transitioning}
                     onclick={onclick_play}
                 >{translate!(t, "Play")}</button>
-                <button
-                    id="play_with_friends_button"
-                    class={button_style}
-                    style={format!("border: 2px solid #8dd391; font-size: 2rem; padding: 0.4rem 0.5rem; background-color: #549b9f; {}", props.button_style)}
-                    disabled={*paused || *transitioning}
-                    onclick={onclick_play_with_friends}
-                >{format!(
-                    "{} {}",
-                    if playing_with_friends { '☑' } else { '☐' },
-                    translate!(t, "Play with friends")
-                )}</button>
+                if !cfg!(feature = "no_plasma") {
+                    <button
+                        id="play_with_friends_button"
+                        class={button_style}
+                        style={format!("border: 2px solid #8dd391; font-size: 2rem; padding: 0.4rem 0.5rem; background-color: #549b9f; {}", props.button_style)}
+                        disabled={*paused || *transitioning}
+                        onclick={onclick_play_with_friends}
+                    >{format!(
+                        "{} {}",
+                        if playing_with_friends { '☑' } else { '☐' },
+                        translate!(t, "Play with friends")
+                    )}</button>
+                }
             </div>
             <div
                 id="banner_container"
