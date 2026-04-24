@@ -124,7 +124,7 @@ impl<G: ArenaService> Arena<G> {
             chat.broadcast_message(announcement, None, std::iter::once(&mut *self), None, false);
         }
 
-        // Update clients and bots.
+        // Update clients.
         clients.update(
             &self.arena_service,
             &mut self.arena_context.players,
@@ -138,11 +138,6 @@ impl<G: ArenaService> Arena<G> {
             system,
             temporaries_available,
         );
-        self.arena_context.bots.update(
-            &self.arena_service,
-            &mut self.arena_context.players,
-            &self.arena_context.settings,
-        );
 
         liveboard.process(
             arena_id.scene_id,
@@ -153,8 +148,15 @@ impl<G: ArenaService> Arena<G> {
         // Post-update game logic.
         self.arena_service.post_update(&mut self.arena_context);
 
-        // Bot commands/joining/leaving, postponed because no commands should be issued between
-        // `GameService::tick` and `GameService::post_update`.
+        // Bots are "updated" here but unlike clients.update this is creating inputs rather than sending outputs.
+        // Clients call ArenaService::player_command any time between Arena::update. To do the same with bots,
+        // we need to run bots at the beginning or end of Arena::update. The end is chosen because if bots take
+        // a significant amount of time to calculate, that latency is not added to client commands.
+        self.arena_context.bots.update(
+            &self.arena_service,
+            &mut self.arena_context.players,
+            &self.arena_context.settings,
+        );
         self.arena_context
             .bots
             .post_update(&mut self.arena_service, &mut self.arena_context.players);
