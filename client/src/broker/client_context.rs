@@ -600,6 +600,12 @@ impl<G: GameClient> ClientContext<G> {
 
     /// Set the props used to render the UI.
     pub fn set_ui_props(&mut self, props: G::UiProps, in_game: bool) {
+        self.set_ui_props_inner1(in_game);
+        self.set_ui_props_inner2(props);
+    }
+
+    /// Split version of [`Self::set_ui_props`] to avoid mutable borrowing issue.
+    pub fn set_ui_props_inner1(&mut self, in_game: bool) {
         if in_game && self.client.escaping.is_spawning() {
             #[cfg(not(feature = "pointer_lock"))]
             let in_game = true;
@@ -616,6 +622,10 @@ impl<G: GameClient> ClientContext<G> {
         if !in_game && !self.client.escaping.is_spawning() {
             self.set_escaping(Escaping::Spawning);
         }
+    }
+
+    /// Split version of [`Self::set_ui_props`] to avoid mutable borrowing issue.
+    pub fn set_ui_props_inner2(&self, props: G::UiProps) {
         self.set_ui_props.emit(props);
     }
 
