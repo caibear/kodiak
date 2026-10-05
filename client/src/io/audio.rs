@@ -144,6 +144,7 @@ impl AudioBufferHandle {
         });
         #[allow(deprecated)]
         source.set_onended(Some(stop.as_ref().unchecked_ref()));
+        stop.forget();
         Self {
             source,
             gain,
