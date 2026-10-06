@@ -270,9 +270,11 @@ impl<A: Audio> AudioPlayer<A> {
 
     /// Creates an audio handle for brown noise.
     pub fn create_brown_noise_sfx(&self) -> AudioBufferHandle {
+        self.create_brown_noise_sfx_with_seconds_and_sample_rate(1, 44100)
+    }
+
+    pub fn create_brown_noise_sfx_with_seconds_and_sample_rate(&self, seconds: u32, sample_rate: u32) -> AudioBufferHandle {
         let inner = self.inner.borrow();
-        let sample_rate = 44100; // inner.context.sample_rate();
-        let seconds = 1;
 
         let mut last = 0.0;
         let buf = Vec::from_iter(
@@ -282,7 +284,7 @@ impl<A: Audio> AudioPlayer<A> {
                 last = next;
                 next * 3.5 // gain compensation.
             })
-            .take(seconds * sample_rate),
+            .take(seconds as usize * sample_rate as usize),
         );
         let buffer = inner
             .context
