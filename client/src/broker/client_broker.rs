@@ -206,7 +206,7 @@ impl<G: GameClient> ClientBroker<G> {
             "keydown" | "keyup" => {
                 let down = type_ == "keydown";
 
-                if let Some(key) = Key::try_from_key_code(event.key_code()) {
+                if let Some(key) = Key::try_from_code(&event.code()) {
                     // Allow down keys to be released even after entering an input.
                     if down || self.context.keyboard.is_up(key) {
                         if let Some(target) = event.target() {
